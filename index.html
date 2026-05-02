@@ -3,49 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlashPresent 🚀 - Beta</title>
+    <title>TU Expo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gray-50 min-h-screen flex flex-col">
 
-    <!-- SECCIÓN DE ACCESO -->
-    <div id="auth-section" class="flex items-center justify-center min-h-screen">
-        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
-            <h1 class="text-3xl font-bold text-blue-600 mb-2 text-center">FlashPresent 🚀</h1>
-            <p class="text-gray-500 mb-6 text-center text-sm">Tus archivos de exposición, siempre a la mano.</p>
+    <div id="auth-section" class="flex flex-grow items-center justify-center">
+        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border-t-4 border-blue-600">
+            <h1 class="text-3xl font-bold text-blue-600 mb-2 text-center">TU Expo</h1>
+            <p class="text-gray-500 mb-6 text-center text-sm">Acceso seguro a tus presentaciones.</p>
             <div class="space-y-4">
                 <input type="email" id="email" placeholder="Correo electrónico" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                <input type="password" id="password" placeholder="Contraseña" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="password" id="password" placeholder="Contraseña (mín. 6 caracteres)" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
                 <button id="btn-login" class="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition">Entrar</button>
                 <button id="btn-register" class="w-full text-blue-600 text-sm hover:underline">¿No tienes cuenta? Regístrate aquí</button>
             </div>
         </div>
     </div>
 
-    <!-- SECCIÓN DEL DASHBOARD -->
-    <div id="app-section" class="hidden container mx-auto p-4 md:p-8">
+    <div id="app-section" class="hidden flex-grow container mx-auto p-4 md:p-8">
         <header class="flex justify-between items-center mb-8">
-            <h2 class="text-2xl font-bold text-blue-600">Mis Exposiciones</h2>
+            <h2 class="text-2xl font-bold text-blue-600">TU Expo</h2>
             <button id="btn-logout" class="text-red-500 font-medium hover:underline">Cerrar Sesión</button>
         </header>
 
         <div class="grid md:grid-cols-3 gap-8">
-            <!-- Subida -->
-            <div class="bg-white p-6 rounded-xl shadow-md border-2 border-dashed border-blue-100 h-fit">
-                <h3 class="font-bold mb-4 text-gray-700">Nueva Exposición</h3>
-                <input type="file" id="file-input" class="block w-full text-sm text-gray-500 mb-4 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700">
-                <button id="btn-upload" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-800 transition font-bold text-center">Subir ahora</button>
+            <div class="space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                    <h3 class="font-bold mb-4 text-gray-700">Subir Archivo</h3>
+                    <input type="file" id="file-input" class="block w-full text-sm text-gray-500 mb-4 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700">
+                    <button id="btn-upload" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-800 transition font-bold">Subir Archivo</button>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                    <h3 class="font-bold mb-4 text-gray-700">Agregar Enlace (URL)</h3>
+                    <input type="text" id="link-name" placeholder="Nombre (ej: Canva)" class="w-full p-2 border rounded mb-2 text-sm outline-none">
+                    <input type="url" id="link-url" placeholder="https://..." class="w-full p-2 border rounded mb-4 text-sm outline-none">
+                    <button id="btn-add-link" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition font-bold">Guardar Link</button>
+                </div>
             </div>
 
-            <!-- Lista -->
             <div class="md:col-span-2">
                 <div id="files-list" class="grid gap-4">
-                    <p class="text-gray-400 italic">Cargando tus archivos...</p>
+                    <p class="text-gray-400 italic text-center">Cargando contenido seguro...</p>
                 </div>
             </div>
         </div>
     </div>
+
+    <footer class="p-6 text-center text-gray-400 text-sm">
+        Made by <span class="font-bold text-blue-500 text-lg">ADeN</span>
+    </footer>
 
     <script src="script.js"></script>
 </body>
