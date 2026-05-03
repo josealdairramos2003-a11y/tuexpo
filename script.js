@@ -1,167 +1,138 @@
-// 1. CONFIGURACIÓN PROTEGIDA
+/**
+ * TU Expo - Lógica de Aplicación
+ * Desarrollado por: ADeN
+ * Versión: 2.0 (Seguridad Reforzada)
+ */
+
+// 1. CONFIGURACIÓN DE SUPABASE
 const SUPABASE_URL = "https://pyrbzjksidcxrciehttw.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_z635wk3Q47p8wJNJRRZwrg_s5CXGRYt"; 
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// 2. UTILIDAD ANTI-INYECCIÓN (XSS PROTECTION)
+// 2. UTILIDADES DE SEGURIDAD (Prevención de XSS)
 function escapeHTML(str) {
     const p = document.createElement('p');
     p.textContent = str;
     return p.innerHTML;
 }
 
-// 3. ELEMENTOS
-const authSection = document.getElementById('auth-section');
+// 3. NAVEGACIÓN ENTRE VISTAS (Login / Registro)
+function switchCard(view) {
+    const loginCard = document.getElementById('login-card');
+    const registerCard = document.getElementById('register-card');
+    
+    // Limpiar campos al cambiar de vista
+    document.querySelectorAll('input').forEach(input => input.value = '');
+
+    if(view === 'register') {
+        loginCard.classList.add('hidden');
+        registerCard.classList.remove('hidden');
+    } else {
+        registerCard.classList.add('hidden');
+        loginCard.classList.remove('hidden');
+    }
+}
+
+// 4. ELEMENTOS DEL DOM
+const authContainer = document.getElementById('auth-container');
 const appSection = document.getElementById('app-section');
-const btnLogin = document.getElementById('btn-login');
-const btnRegister = document.getElementById('btn-register');
-const btnLogout = document.getElementById('btn-logout');
-const btnUpload = document.getElementById('btn-upload');
-const btnAddLink = document.getElementById('btn-add-link');
-const fileInput = document.getElementById('file-input');
-const linkNameInput = document.getElementById('link-name');
-const linkUrlInput = document.getElementById('link-url');
 const filesList = document.getElementById('files-list');
-const emailInput = document.getElementById('email');
-const passwordInput = document.getElementById('password');
 
-// 4. AUTENTICACIÓN SEGURA
-btnLogin.addEventListener('click', async () => {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
+// 5. GESTIÓN DE AUTENTICACIÓN
+// Iniciar Sesión
+document.getElementById('btn-do-login').addEventListener('click', async () => {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
 
-    if(!email || !password) return alert("Por favor, completa todos los campos.");
+    if(!email || !password) return alert("Ingresa tus credenciales.");
 
     const { error } = await _supabase.auth.signInWithPassword({ email, password });
-    if (error) alert("Credenciales incorrectas o error de red.");
-    else mostrarApp();
+    
+    if (error) {
+        alert("Error: Correo o contraseña incorrectos.");
+    } else {
+        mostrarDashboard();
+    }
 });
 
-btnRegister.addEventListener('click', async () => {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
+// Registro de Usuario
+document.getElementById('btn-do-register').addEventListener('click', async () => {
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
 
-    if (password.length < 6) return alert("La contraseña debe ser de al menos 6 caracteres por seguridad.");
+    if (password.length < 6) {
+        return alert("Por seguridad, la contraseña debe tener al menos 6 caracteres.");
+    }
 
-    const { error } = await _supabase.auth.signUp({ email, password });
-    if (error) alert("Error en el registro: " + error.message);
-    else alert("Registro completado. Ya puedes ingresar.");
+    const { data, error } = await _supabase.auth.signUp({ email, password });
+    
+    if (error) {
+        alert("Error al registrar: " + error.message);
+    } else {
+        alert("¡Cuenta creada con éxito! Ya puedes iniciar sesión.");
+        switchCard('login');
+    }
 });
 
-btnLogout.addEventListener('click', async () => {
+// Cerrar Sesión
+document.getElementById('btn-logout').addEventListener('click', async () => {
     await _supabase.auth.signOut();
     location.reload();
 });
 
-async function mostrarApp() {
-    authSection.classList.add('hidden');
+// Control de flujo visual
+function mostrarDashboard() {
+    authContainer.classList.add('hidden');
     appSection.classList.remove('hidden');
-    await cargarContenido();
+    cargarContenido();
 }
 
-// 5. SUBIDA SEGURA DE ARCHIVOS
-btnUpload.addEventListener('click', async () => {
-    const file = fileInput.files[0];
-    if (!file) return alert("Selecciona un archivo válido.");
-
-    // Validación básica de extensión
-    const extensionesPermitidas = /(\.pdf|\.docx|\.pptx|\.jpg|\.png)$/i;
-    if(!extensionesPermitidas.exec(file.name)) {
-        return alert("Tipo de archivo no permitido.");
-    }
-
-    btnUpload.innerText = "Protegiendo y subiendo...";
-    btnUpload.disabled = true;
-
-    try {
-        const { data: { user } } = await _supabase.auth.getUser();
-        if(!user) throw new Error("Sesión expirada.");
-
-        const fileName = `${Date.now()}_${user.id.substring(0,5)}_${file.name.replace(/\s/g, '_')}`;
-
-        const { error: sError } = await _supabase.storage.from('archivos-expo').upload(fileName, file);
-        if (sError) throw sError;
-
-        const { data: urlData } = _supabase.storage.from('archivos-expo').getPublicUrl(fileName);
-
-        await _supabase.from('presentaciones').insert([{ 
-            name: file.name, 
-            url: urlData.publicUrl,
-            user_id: user.id 
-        }]);
-
-        fileInput.value = "";
-        await cargarContenido();
-    } catch (err) {
-        alert("Error de seguridad o servidor: " + err.message);
-    } finally {
-        btnUpload.innerText = "Subir Archivo";
-        btnUpload.disabled = false;
-    }
-});
-
-// 6. ADICIÓN SEGURA DE LINKS
-btnAddLink.addEventListener('click', async () => {
-    const name = linkNameInput.value.trim();
-    const url = linkUrlInput.value.trim();
-
-    if (!name || !url) return alert("Los campos no pueden estar vacíos.");
-
-    try {
-        const { data: { user } } = await _supabase.auth.getUser();
-        if(!user) return;
-
-        const { error } = await _supabase.from('presentaciones').insert([{ 
-            name: `🔗 ${name}`, 
-            url: url,
-            user_id: user.id 
-        }]);
-
-        if (error) throw error;
-
-        linkNameInput.value = "";
-        linkUrlInput.value = "";
-        await cargarContenido();
-    } catch (err) {
-        alert("Error al procesar el enlace.");
-    }
-});
-
-// 7. CARGA CON FILTRO DE PRIVACIDAD (RLS)
+// 6. CARGAR CONTENIDO PERSONALIZADO (Filtrado por RLS)
 async function cargarContenido() {
+    // Obtener usuario actual para asegurar privacidad
     const { data: { user } } = await _supabase.auth.getUser();
     if (!user) return;
 
+    // Consulta filtrada por user_id (Invisible para otros usuarios)
     const { data, error } = await _supabase
         .from('presentaciones')
         .select('*')
-        .eq('user_id', user.id) // <--- Seguridad a nivel de base de datos
+        .eq('user_id', user.id) 
         .order('created_at', { ascending: false });
 
-    if (error) return;
+    if (error) {
+        console.error("Error al cargar:", error);
+        return;
+    }
 
     filesList.innerHTML = "";
     
-    if (data.length === 0) {
-        filesList.innerHTML = '<p class="text-gray-400 italic text-center">Tu espacio está seguro y vacío.</p>';
+    if (!data || data.length === 0) {
+        filesList.innerHTML = `
+            <div class="bg-white p-10 rounded-2xl border-2 border-dashed border-gray-100 text-center text-gray-400">
+                <p class="italic">Tu espacio está listo. Sube tu primer archivo o enlace.</p>
+            </div>`;
         return;
     }
 
     data.forEach(item => {
-        // Usamos escapeHTML para los nombres de archivos/links por seguridad
         const nombreSeguro = escapeHTML(item.name);
         
         filesList.innerHTML += `
-            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition">
-                <div>
-                    <p class="font-bold text-gray-800">${nombreSeguro}</p>
-                    <p class="text-xs text-gray-400">${new Date(item.created_at).toLocaleString()}</p>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition group">
+                <div class="overflow-hidden mr-4">
+                    <p class="font-bold text-gray-800 truncate">${nombreSeguro}</p>
+                    <p class="text-[10px] font-black text-gray-300 uppercase tracking-widest">
+                        ${new Date(item.created_at).toLocaleDateString()}
+                    </p>
                 </div>
-                <div class="flex gap-2 items-center">
-                    <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700">
+                <div class="flex gap-3 items-center shrink-0">
+                    <a href="${item.url}" target="_blank" rel="noopener noreferrer" 
+                       class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold text-xs shadow-lg shadow-blue-50 hover:bg-blue-700 transition">
                         ABRIR
                     </a>
-                    <button onclick="eliminarItem('${item.id}', '${item.url}')" class="text-red-400 hover:text-red-600 p-2">
+                    <button onclick="eliminarItem('${item.id}', '${item.url}')" 
+                            class="text-gray-200 hover:text-red-500 transition p-2">
                         🗑️
                     </button>
                 </div>
@@ -170,21 +141,94 @@ async function cargarContenido() {
     });
 }
 
-// 8. ELIMINACIÓN VALIDADA
-async function eliminarItem(id, url) {
-    if (!confirm("Esta acción eliminará el recurso permanentemente. ¿Continuar?")) return;
+// 7. SUBIDA DE ARCHIVOS
+document.getElementById('btn-upload').addEventListener('click', async () => {
+    const fileInput = document.getElementById('file-input');
+    const file = fileInput.files[0];
+    
+    if (!file) return alert("Selecciona un archivo primero.");
+
+    const btn = document.getElementById('btn-upload');
+    btn.innerText = "Subiendo de forma segura...";
+    btn.disabled = true;
 
     try {
-        if (url.includes('supabase.co')) {
+        const { data: { user } } = await _supabase.auth.getUser();
+        if (!user) throw new Error("Sesión no válida.");
+
+        // Crear nombre único para evitar conflictos en el storage
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+        // 1. Subir al Storage
+        const { error: sError } = await _supabase.storage.from('archivos-expo').upload(fileName, file);
+        if (sError) throw sError;
+
+        // 2. Obtener URL pública
+        const { data: urlData } = _supabase.storage.from('archivos-expo').getPublicUrl(fileName);
+
+        // 3. Registrar en base de datos vinculado al usuario
+        await _supabase.from('presentaciones').insert([{ 
+            name: file.name, 
+            url: urlData.publicUrl,
+            user_id: user.id 
+        }]);
+
+        fileInput.value = "";
+        cargarContenido();
+        alert("Archivo guardado en tu nube.");
+    } catch (err) {
+        alert("Error de subida: " + err.message);
+    } finally {
+        btn.innerText = "Subir a mi nube";
+        btn.disabled = false;
+    }
+});
+
+// 8. GUARDAR ENLACES MANUALES
+document.getElementById('btn-add-link').addEventListener('click', async () => {
+    const nameInput = document.getElementById('link-name');
+    const urlInput = document.getElementById('link-url');
+    
+    const name = nameInput.value.trim();
+    const url = urlInput.value.trim();
+
+    if (!name || !url) return alert("Completa ambos campos del enlace.");
+
+    try {
+        const { data: { user } } = await _supabase.auth.getUser();
+        
+        await _supabase.from('presentaciones').insert([{ 
+            name: `🔗 ${name}`, 
+            url: url,
+            user_id: user.id 
+        }]);
+
+        nameInput.value = "";
+        urlInput.value = "";
+        cargarContenido();
+    } catch (err) {
+        alert("Error al guardar el enlace.");
+    }
+});
+
+// 9. ELIMINACIÓN DE RECURSOS
+async function eliminarItem(id, url) {
+    if (!confirm("¿Seguro que deseas eliminar este recurso de tu cuenta?")) return;
+
+    try {
+        // Si es un archivo alojado en nuestro storage, lo borramos de ahí también
+        if (url.includes('supabase.co/storage')) {
             const fileName = url.split('/').pop().split('?')[0];
             await _supabase.storage.from('archivos-expo').remove([fileName]);
         }
 
+        // Borrar registro de la base de datos
         const { error } = await _supabase.from('presentaciones').delete().eq('id', id);
         if (error) throw error;
 
-        await cargarContenido();
+        cargarContenido();
     } catch (e) {
-        alert("No se pudo completar la operación.");
+        alert("No se pudo eliminar el elemento.");
     }
 }
